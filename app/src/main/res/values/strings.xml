@@ -27,6 +27,7 @@
     <string name="macro_fat">Grasa</string>
     <string name="product_incomplete">Datos incompletos. Podrás completarlos manualmente.</string>
     <string name="add_to_inventory">Añadir al inventario</string>
+    <string name="manual_entry">Alta manual</string>
     <string name="added_to_inventory">%s añadido al inventario</string>
 
     <!-- Navegación inferior -->

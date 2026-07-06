@@ -1,9 +1,12 @@
 package com.foodmaster.app.data.repository
 
 import com.foodmaster.app.data.local.ProductDao
+import com.foodmaster.app.data.mapper.manualProductEntity
 import com.foodmaster.app.data.mapper.toDomain
 import com.foodmaster.app.data.mapper.toEntity
 import com.foodmaster.app.data.remote.OpenFoodFactsApi
+import com.foodmaster.app.domain.model.BaseUnit
+import com.foodmaster.app.domain.model.Macros
 import com.foodmaster.app.domain.model.Product
 import com.foodmaster.app.domain.repository.ProductRepository
 import kotlinx.coroutines.CoroutineDispatcher
@@ -43,6 +46,20 @@ class ProductRepositoryImpl(
 
     override suspend fun getById(id: Long): Product? = withContext(io) {
         dao.findById(id)?.toDomain()
+    }
+
+    override suspend fun saveManual(
+        barcode: String?,
+        name: String,
+        brand: String?,
+        servingUnit: BaseUnit,
+        macros: Macros,
+    ): Product = withContext(io) {
+        // Reuse the existing row if this barcode is already cached (unique index).
+        val existingId = barcode?.let { dao.findByBarcode(it)?.id } ?: 0
+        val entity = manualProductEntity(barcode, name, brand, servingUnit, macros, id = existingId)
+        val id = dao.upsert(entity)
+        entity.copy(id = id).toDomain()
     }
 
     override fun observe(id: Long): Flow<Product?> =

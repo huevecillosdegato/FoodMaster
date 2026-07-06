@@ -87,6 +87,7 @@ private fun ScannerContent(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showAddDialog by remember { mutableStateOf(false) }
+    var showManualDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         CameraPreview(
@@ -148,11 +149,27 @@ private fun ScannerContent(
                 )
             }
 
-            ScanPhase.NotFound -> InfoDialog(
-                title = stringResource(R.string.product_not_found_title),
-                message = stringResource(R.string.product_not_found_message, state.scannedCode.orEmpty()),
-                onScanAgain = viewModel::scanAgain,
-                onClose = onClose,
+            ScanPhase.NotFound -> AlertDialog(
+                onDismissRequest = viewModel::scanAgain,
+                title = { Text(stringResource(R.string.product_not_found_title)) },
+                text = {
+                    Text(
+                        stringResource(
+                            R.string.product_not_found_message,
+                            state.scannedCode.orEmpty(),
+                        ),
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { showManualDialog = true }) {
+                        Text(stringResource(R.string.manual_entry))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::scanAgain) {
+                        Text(stringResource(R.string.scan_again))
+                    }
+                },
             )
 
             ScanPhase.Error -> InfoDialog(
@@ -187,6 +204,18 @@ private fun ScannerContent(
                     onDismiss = { showAddDialog = false },
                 )
             }
+        }
+
+        // Manual product entry, opened from the "not found" dialog.
+        if (showManualDialog) {
+            ManualProductDialog(
+                barcode = state.scannedCode,
+                onSave = { name, brand, servingUnit, macros ->
+                    viewModel.createManualProduct(name, brand, servingUnit, macros)
+                    showManualDialog = false
+                },
+                onDismiss = { showManualDialog = false },
+            )
         }
     }
 }

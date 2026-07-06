@@ -36,6 +36,36 @@ fun OffProductDto.toEntity(barcode: String): ProductEntity {
     )
 }
 
+/** Build a cache entity for a manually-entered product. */
+fun manualProductEntity(
+    barcode: String?,
+    name: String,
+    brand: String?,
+    servingUnit: BaseUnit,
+    macros: Macros,
+    id: Long = 0,
+): ProductEntity = ProductEntity(
+    id = id,
+    barcode = barcode?.takeIf { it.isNotBlank() },
+    name = name,
+    brand = brand?.takeIf { it.isNotBlank() },
+    category = null,
+    imageUrl = null,
+    macros = MacrosEmbedded(
+        kcal = macros.kcal,
+        protein = macros.protein,
+        carbs = macros.carbs,
+        fat = macros.fat,
+        fiber = macros.fiber,
+        sugar = macros.sugar,
+        salt = macros.salt,
+    ),
+    servingUnit = servingUnit.name,
+    source = DataSource.MANUAL.name,
+    incomplete = macros.isEmpty,
+    updatedAt = System.currentTimeMillis(),
+)
+
 fun ProductEntity.toDomain(): Product = Product(
     id = id,
     barcode = barcode,

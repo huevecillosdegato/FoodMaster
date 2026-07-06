@@ -35,7 +35,7 @@ class InventoryRepositoryImpl(
         purchaseDate: LocalDate?,
         expirationDate: LocalDate?,
         lowStockThreshold: Quantity?,
-    ) = withContext(io) {
+    ): Unit = withContext(io) {
         val existing = dao.findByProduct(product.id)
         if (existing != null && unitOf(existing.unit).base == quantity.unit.base) {
             // Merge in the base unit, keeping the existing display unit.

@@ -1,5 +1,7 @@
 package com.foodmaster.app.domain.repository
 
+import com.foodmaster.app.domain.model.BaseUnit
+import com.foodmaster.app.domain.model.Macros
 import com.foodmaster.app.domain.model.Product
 import kotlinx.coroutines.flow.Flow
 
@@ -20,6 +22,15 @@ interface ProductRepository {
 
     /** Fetch a cached product by id. */
     suspend fun getById(id: Long): Product?
+
+    /** Create (or update by barcode) a manually-entered product; returns it with its id. */
+    suspend fun saveManual(
+        barcode: String?,
+        name: String,
+        brand: String?,
+        servingUnit: BaseUnit,
+        macros: Macros,
+    ): Product
 
     /** Observe a cached product by id. */
     fun observe(id: Long): Flow<Product?>

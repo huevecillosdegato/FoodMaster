@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.foodmaster.app.FoodMasterApplication
+import com.foodmaster.app.domain.model.BaseUnit
+import com.foodmaster.app.domain.model.Macros
 import com.foodmaster.app.domain.model.Product
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.StorageLocation
@@ -60,6 +62,18 @@ class ScannerViewModel(
     /** Return to live scanning, clearing the last result. */
     fun scanAgain() {
         _state.value = ScannerUiState()
+    }
+
+    /**
+     * Create a manual product for the barcode that wasn't found, then move to the
+     * ProductFound phase so the normal "add to inventory" flow can continue.
+     */
+    fun createManualProduct(name: String, brand: String?, servingUnit: BaseUnit, macros: Macros) {
+        val code = _state.value.scannedCode
+        viewModelScope.launch {
+            val product = productRepository.saveManual(code, name, brand, servingUnit, macros)
+            _state.update { it.copy(phase = ScanPhase.ProductFound, product = product) }
+        }
     }
 
     /** Add the currently found product to the inventory, then resume scanning. */

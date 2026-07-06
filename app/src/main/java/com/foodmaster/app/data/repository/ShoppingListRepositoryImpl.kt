@@ -23,7 +23,7 @@ class ShoppingListRepositoryImpl(
     override fun observeAll(): Flow<List<ShoppingListItem>> =
         dao.observeAll().map { rows -> rows.map { it.toDomain() } }
 
-    override suspend fun addOrMergeAuto(productId: Long, desired: Quantity) = withContext(io) {
+    override suspend fun addOrMergeAuto(productId: Long, desired: Quantity): Unit = withContext(io) {
         val existing = dao.findActiveAuto(productId)
         if (existing != null) {
             // Idempotent: update the existing auto line instead of duplicating.
@@ -33,7 +33,7 @@ class ShoppingListRepositoryImpl(
         }
     }
 
-    override suspend fun addManual(productId: Long, desired: Quantity) = withContext(io) {
+    override suspend fun addManual(productId: Long, desired: Quantity): Unit = withContext(io) {
         val existing = dao.findByProduct(productId)
         if (existing != null) {
             dao.upsert(existing.copy(amount = desired.amount, unit = desired.unit.name, checked = false))
