@@ -7,7 +7,11 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.foodmaster.app.FoodMasterApplication
 import com.foodmaster.app.domain.model.Product
+import com.foodmaster.app.domain.model.Quantity
+import com.foodmaster.app.domain.model.StorageLocation
 import com.foodmaster.app.domain.repository.ProductRepository
+import com.foodmaster.app.domain.usecase.AddToInventoryUseCase
+import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +29,7 @@ data class ScannerUiState(
 
 class ScannerViewModel(
     private val productRepository: ProductRepository,
+    private val addToInventoryUseCase: AddToInventoryUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ScannerUiState())
@@ -57,11 +62,34 @@ class ScannerViewModel(
         _state.value = ScannerUiState()
     }
 
+    /** Add the currently found product to the inventory, then resume scanning. */
+    fun addCurrentToInventory(
+        quantity: Quantity,
+        location: StorageLocation,
+        expirationDate: LocalDate?,
+        lowStockThreshold: Quantity?,
+    ) {
+        val product = _state.value.product ?: return
+        viewModelScope.launch {
+            addToInventoryUseCase(
+                product = product,
+                quantity = quantity,
+                location = location,
+                expirationDate = expirationDate,
+                lowStockThreshold = lowStockThreshold,
+            )
+            scanAgain()
+        }
+    }
+
     companion object {
         val Factory = viewModelFactory {
             initializer {
-                val app = this[APPLICATION_KEY] as FoodMasterApplication
-                ScannerViewModel(app.container.productRepository)
+                val container = (this[APPLICATION_KEY] as FoodMasterApplication).container
+                ScannerViewModel(
+                    productRepository = container.productRepository,
+                    addToInventoryUseCase = container.addToInventoryUseCase,
+                )
             }
         }
     }

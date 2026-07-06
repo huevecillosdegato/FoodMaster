@@ -26,6 +26,15 @@
     <string name="macro_carbs">Carbohidratos</string>
     <string name="macro_fat">Grasa</string>
     <string name="product_incomplete">Datos incompletos. Podrás completarlos manualmente.</string>
+    <string name="add_to_inventory">Añadir al inventario</string>
+    <string name="added_to_inventory">%s añadido al inventario</string>
+
+    <!-- Navegación inferior -->
+    <string name="tab_inventory">Inventario</string>
+    <string name="tab_scan">Escanear</string>
+    <string name="tab_shopping">Compra</string>
+    <string name="title_inventory">Inventario</string>
+    <string name="title_shopping">Lista de la compra</string>
 
     <!-- Resultados de búsqueda -->
     <string name="product_not_found_title">Producto no encontrado</string>

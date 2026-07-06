@@ -31,6 +31,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Enables java.time (LocalDate) on API < 26.
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -90,4 +92,7 @@ dependencies {
 
     // Image loading
     implementation(libs.coil.compose)
+
+    // java.time on API < 26
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

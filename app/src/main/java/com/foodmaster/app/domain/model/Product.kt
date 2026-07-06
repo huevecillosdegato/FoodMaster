@@ -13,7 +13,7 @@ data class Product(
     val category: String?,
     val imageUrl: String?,
     val macrosPer100: Macros,
-    val servingUnit: MeasureUnit,   // MASS (per 100 g) or VOLUME (per 100 ml)
+    val servingUnit: BaseUnit,      // MASS (per 100 g) or VOLUME (per 100 ml)
     val source: DataSource,
     /**
      * True when key nutrition fields came back empty from the source, so the UI
@@ -36,7 +36,5 @@ data class Macros(
     val isEmpty: Boolean
         get() = kcal == null && protein == null && carbs == null && fat == null
 }
-
-enum class MeasureUnit { MASS, VOLUME }
 
 enum class DataSource { OPEN_FOOD_FACTS, MANUAL, RECEIPT }

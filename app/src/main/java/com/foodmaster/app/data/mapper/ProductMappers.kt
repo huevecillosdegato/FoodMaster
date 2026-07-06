@@ -3,9 +3,9 @@ package com.foodmaster.app.data.mapper
 import com.foodmaster.app.data.local.MacrosEmbedded
 import com.foodmaster.app.data.local.ProductEntity
 import com.foodmaster.app.data.remote.OffProductDto
+import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.DataSource
 import com.foodmaster.app.domain.model.Macros
-import com.foodmaster.app.domain.model.MeasureUnit
 import com.foodmaster.app.domain.model.Product
 
 /** Map an Open Food Facts product to a cache entity for the given [barcode]. */
@@ -52,14 +52,14 @@ fun ProductEntity.toDomain(): Product = Product(
         sugar = macros.sugar,
         salt = macros.salt,
     ),
-    servingUnit = runCatching { MeasureUnit.valueOf(servingUnit) }.getOrDefault(MeasureUnit.MASS),
+    servingUnit = runCatching { BaseUnit.valueOf(servingUnit) }.getOrDefault(BaseUnit.MASS),
     source = runCatching { DataSource.valueOf(source) }.getOrDefault(DataSource.OPEN_FOOD_FACTS),
     incomplete = incomplete,
 )
 
 /** Liquids are measured per 100 ml, everything else per 100 g. */
-private fun guessServingUnit(quantity: String?): MeasureUnit {
+private fun guessServingUnit(quantity: String?): BaseUnit {
     val q = quantity?.lowercase().orEmpty()
     val looksLiquid = Regex("""\b\d+([.,]\d+)?\s*(ml|cl|l)\b""").containsMatchIn(q)
-    return if (looksLiquid) MeasureUnit.VOLUME else MeasureUnit.MASS
+    return if (looksLiquid) BaseUnit.VOLUME else BaseUnit.MASS
 }

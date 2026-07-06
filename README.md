@@ -62,18 +62,45 @@ Instala en un dispositivo o emulador con cámara:
 > El escaneo usa la cámara física; el emulador puede simularla con una imagen
 > virtual, pero se recomienda un dispositivo real para probar la detección.
 
-## Flujo actual
+## Flujo actual (Fase 1 — MVP)
 
-1. Pantalla de inicio → botón **"Escanear código de barras"**.
-2. Se solicita el permiso de cámara (con enlace a ajustes si se deniega).
-3. Vista previa a pantalla completa; la detección es continua y automática.
-4. Al leer un código: caché local → Open Food Facts → se cachea el resultado.
-5. Se muestra la **ficha del producto** (nombre, marca, imagen, macros/100) o un
-   aviso de "no encontrado" / error, con opción de escanear otro.
+Navegación inferior con tres pestañas: **Inventario · Escanear · Compra**.
+
+**Escanear**
+1. Vista previa a pantalla completa; la detección es continua y automática.
+2. Al leer un código: caché local → Open Food Facts → se cachea el resultado.
+3. Ficha del producto (nombre, marca, imagen, macros/100) o aviso de
+   "no encontrado" / error.
+4. **Añadir al inventario**: cantidad + unidad + ubicación + caducidad
+   (opcional) + umbral de stock bajo (opcional).
+
+**Inventario**
+- Lista de lo que tienes en casa (cantidad, ubicación, caducidad).
+- **Consumir** una cantidad (la resta se hace en unidad base) o eliminar.
+- Al bajar del umbral, el producto entra **automáticamente** en la lista de la
+  compra (regla idempotente: no duplica líneas).
+
+**Compra**
+- Lista con líneas manuales y auto-generadas.
+- Marca lo comprado y pulsa **"Comprado → añadir al inventario"**: los ítems
+  marcados vuelven al inventario, cerrando el bucle
+  escanear → guardar → consumir → reponer → comprar.
+
+## Bucle funcional
+
+```
+Escanear ──► Producto (OFF/caché) ──► Añadir al inventario
+                                            │
+                              Consumir ◄────┘
+                                 │
+                    stock ≤ umbral ──► Lista de la compra (auto)
+                                            │
+                         Comprado ─────► Inventario
+```
 
 ## Siguientes pasos (según el diseño técnico)
 
-Alta manual de productos no encontrados, y el bucle de inventario:
-guardar el producto escaneado en el inventario (cantidad + ubicación +
-caducidad) y generar la lista de la compra por stock bajo. Ver el documento de
-diseño para la hoja de ruta completa por fases.
+Fase 2: recetas, cálculo de macros por comida, alertas de caducidad
+(WorkManager). Fase 3: OCR de facturas, precios y coste por comida. Alta manual
+de productos no encontrados. Ver el documento de diseño para la hoja de ruta
+completa por fases.

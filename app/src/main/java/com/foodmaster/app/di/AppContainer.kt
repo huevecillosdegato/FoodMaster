@@ -4,8 +4,15 @@ import android.content.Context
 import androidx.room.Room
 import com.foodmaster.app.data.local.FoodMasterDatabase
 import com.foodmaster.app.data.remote.OpenFoodFactsApi
+import com.foodmaster.app.data.repository.InventoryRepositoryImpl
 import com.foodmaster.app.data.repository.ProductRepositoryImpl
+import com.foodmaster.app.data.repository.ShoppingListRepositoryImpl
+import com.foodmaster.app.domain.repository.InventoryRepository
 import com.foodmaster.app.domain.repository.ProductRepository
+import com.foodmaster.app.domain.repository.ShoppingListRepository
+import com.foodmaster.app.domain.usecase.AddToInventoryUseCase
+import com.foodmaster.app.domain.usecase.ConsumeProductUseCase
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -19,6 +26,10 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
  */
 interface AppContainer {
     val productRepository: ProductRepository
+    val inventoryRepository: InventoryRepository
+    val shoppingListRepository: ShoppingListRepository
+    val addToInventoryUseCase: AddToInventoryUseCase
+    val consumeProductUseCase: ConsumeProductUseCase
 }
 
 class DefaultAppContainer(context: Context) : AppContainer {
@@ -57,7 +68,30 @@ class DefaultAppContainer(context: Context) : AppContainer {
         ProductRepositoryImpl(
             dao = database.productDao(),
             api = openFoodFactsApi,
-            io = kotlinx.coroutines.Dispatchers.IO,
+            io = Dispatchers.IO,
         )
+    }
+
+    override val inventoryRepository: InventoryRepository by lazy {
+        InventoryRepositoryImpl(
+            dao = database.inventoryDao(),
+            io = Dispatchers.IO,
+        )
+    }
+
+    override val shoppingListRepository: ShoppingListRepository by lazy {
+        ShoppingListRepositoryImpl(
+            dao = database.shoppingDao(),
+            inventoryRepository = inventoryRepository,
+            io = Dispatchers.IO,
+        )
+    }
+
+    override val addToInventoryUseCase: AddToInventoryUseCase by lazy {
+        AddToInventoryUseCase(inventoryRepository)
+    }
+
+    override val consumeProductUseCase: ConsumeProductUseCase by lazy {
+        ConsumeProductUseCase(inventoryRepository, shoppingListRepository)
     }
 }

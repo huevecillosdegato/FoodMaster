@@ -3,6 +3,10 @@ package com.foodmaster.app.scanner
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import android.widget.Toast
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -43,7 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.foodmaster.app.R
-import com.foodmaster.app.domain.model.MeasureUnit
+import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.Product
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -81,6 +85,8 @@ private fun ScannerContent(
     onClose: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var showAddDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         CameraPreview(
@@ -137,7 +143,7 @@ private fun ScannerContent(
                 ProductCard(
                     product = product,
                     onScanAgain = viewModel::scanAgain,
-                    onClose = onClose,
+                    onAddToInventory = { showAddDialog = true },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
@@ -157,6 +163,30 @@ private fun ScannerContent(
             )
 
             ScanPhase.Scanning -> Unit
+        }
+
+        // Add-to-inventory form, opened from the product card.
+        if (showAddDialog) {
+            state.product?.let { product ->
+                AddToInventoryDialog(
+                    product = product,
+                    onConfirm = { entry ->
+                        viewModel.addCurrentToInventory(
+                            quantity = entry.quantity,
+                            location = entry.location,
+                            expirationDate = entry.expirationDate,
+                            lowStockThreshold = entry.lowStockThreshold,
+                        )
+                        showAddDialog = false
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.added_to_inventory, product.name),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    },
+                    onDismiss = { showAddDialog = false },
+                )
+            }
         }
     }
 }
@@ -185,7 +215,7 @@ private fun LoadingOverlay(code: String?) {
 private fun ProductCard(
     product: Product,
     onScanAgain: () -> Unit,
-    onClose: () -> Unit,
+    onAddToInventory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -230,7 +260,7 @@ private fun ProductCard(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-            val per = if (product.servingUnit == MeasureUnit.VOLUME) {
+            val per = if (product.servingUnit == BaseUnit.VOLUME) {
                 stringResource(R.string.per_100ml)
             } else {
                 stringResource(R.string.per_100g)
@@ -267,10 +297,10 @@ private fun ProductCard(
                     Text(stringResource(R.string.scan_again))
                 }
                 Button(
-                    onClick = onClose,
+                    onClick = onAddToInventory,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(stringResource(R.string.done))
+                    Text(stringResource(R.string.add_to_inventory))
                 }
             }
         }
