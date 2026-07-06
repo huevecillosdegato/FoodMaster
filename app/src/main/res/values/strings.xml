@@ -16,4 +16,20 @@
     <string name="barcode_detected">Código detectado</string>
     <string name="scan_again">Escanear otro</string>
     <string name="ok">Aceptar</string>
+    <string name="done">Hecho</string>
+
+    <!-- Ficha de producto -->
+    <string name="per_100g">Valores por 100 g</string>
+    <string name="per_100ml">Valores por 100 ml</string>
+    <string name="macro_kcal">kcal</string>
+    <string name="macro_protein">Proteína</string>
+    <string name="macro_carbs">Carbohidratos</string>
+    <string name="macro_fat">Grasa</string>
+    <string name="product_incomplete">Datos incompletos. Podrás completarlos manualmente.</string>
+
+    <!-- Resultados de búsqueda -->
+    <string name="product_not_found_title">Producto no encontrado</string>
+    <string name="product_not_found_message">No hay datos para el código %s. Podrás darlo de alta manualmente.</string>
+    <string name="lookup_error_title">No se pudo consultar</string>
+    <string name="lookup_error_generic">Revisa tu conexión e inténtalo de nuevo.</string>
 </resources>

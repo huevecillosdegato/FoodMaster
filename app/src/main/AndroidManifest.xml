@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Escaneo de códigos de barras: único permiso necesario en la v1 -->
+    <!-- Escaneo de códigos de barras -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Enriquecer productos desde Open Food Facts -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-feature
         android:name="android.hardware.camera.any"
         android:required="false" />
 
     <application
+        android:name=".FoodMasterApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
