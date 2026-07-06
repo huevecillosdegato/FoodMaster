@@ -33,8 +33,12 @@
     <string name="tab_inventory">Inventario</string>
     <string name="tab_scan">Escanear</string>
     <string name="tab_shopping">Compra</string>
+    <string name="tab_recipes">Recetas</string>
+    <string name="tab_stats">Stats</string>
     <string name="title_inventory">Inventario</string>
     <string name="title_shopping">Lista de la compra</string>
+    <string name="title_recipes">Recetas</string>
+    <string name="title_stats">Estadísticas</string>
 
     <!-- Resultados de búsqueda -->
     <string name="product_not_found_title">Producto no encontrado</string>

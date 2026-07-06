@@ -6,12 +6,16 @@ import com.foodmaster.app.data.local.FoodMasterDatabase
 import com.foodmaster.app.data.remote.OpenFoodFactsApi
 import com.foodmaster.app.data.repository.InventoryRepositoryImpl
 import com.foodmaster.app.data.repository.ProductRepositoryImpl
+import com.foodmaster.app.data.repository.RecipeRepositoryImpl
 import com.foodmaster.app.data.repository.ShoppingListRepositoryImpl
 import com.foodmaster.app.domain.repository.InventoryRepository
 import com.foodmaster.app.domain.repository.ProductRepository
+import com.foodmaster.app.domain.repository.RecipeRepository
 import com.foodmaster.app.domain.repository.ShoppingListRepository
 import com.foodmaster.app.domain.usecase.AddToInventoryUseCase
+import com.foodmaster.app.domain.usecase.ComputeMealMacrosUseCase
 import com.foodmaster.app.domain.usecase.ConsumeProductUseCase
+import com.foodmaster.app.domain.usecase.PrepareRecipeUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -28,8 +32,10 @@ interface AppContainer {
     val productRepository: ProductRepository
     val inventoryRepository: InventoryRepository
     val shoppingListRepository: ShoppingListRepository
+    val recipeRepository: RecipeRepository
     val addToInventoryUseCase: AddToInventoryUseCase
     val consumeProductUseCase: ConsumeProductUseCase
+    val prepareRecipeUseCase: PrepareRecipeUseCase
 }
 
 class DefaultAppContainer(context: Context) : AppContainer {
@@ -93,5 +99,17 @@ class DefaultAppContainer(context: Context) : AppContainer {
 
     override val consumeProductUseCase: ConsumeProductUseCase by lazy {
         ConsumeProductUseCase(inventoryRepository, shoppingListRepository)
+    }
+
+    override val recipeRepository: RecipeRepository by lazy {
+        RecipeRepositoryImpl(database = database, io = Dispatchers.IO)
+    }
+
+    override val prepareRecipeUseCase: PrepareRecipeUseCase by lazy {
+        PrepareRecipeUseCase(
+            recipeRepository = recipeRepository,
+            computeMealMacros = ComputeMealMacrosUseCase(),
+            consumeProduct = consumeProductUseCase,
+        )
     }
 }

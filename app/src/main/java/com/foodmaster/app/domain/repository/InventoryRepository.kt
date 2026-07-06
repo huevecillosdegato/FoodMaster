@@ -30,5 +30,8 @@ interface InventoryRepository {
 
     suspend fun logConsumption(productId: Long, consumed: Quantity, mealId: Long?)
 
+    /** Items whose expiration date is within [days] from today (soonest first). */
+    suspend fun itemsExpiringWithin(days: Long): List<InventoryItem>
+
     suspend fun delete(id: Long)
 }

@@ -22,6 +22,14 @@ interface InventoryDao {
     @Query("SELECT * FROM inventory_items WHERE productId = :productId LIMIT 1")
     suspend fun findWithProductByProduct(productId: Long): InventoryWithProduct?
 
+    @Transaction
+    @Query(
+        "SELECT * FROM inventory_items " +
+            "WHERE expirationDate IS NOT NULL AND expirationDate <= :maxEpochDay " +
+            "ORDER BY expirationDate ASC",
+    )
+    suspend fun expiringBy(maxEpochDay: Long): List<InventoryWithProduct>
+
     @Upsert
     suspend fun upsert(item: InventoryItemEntity): Long
 

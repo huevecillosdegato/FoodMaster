@@ -14,6 +14,12 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :id LIMIT 1")
     fun observeById(id: Long): Flow<ProductEntity?>
 
+    @Query("SELECT * FROM products WHERE id = :id LIMIT 1")
+    suspend fun findById(id: Long): ProductEntity?
+
+    @Query("SELECT * FROM products ORDER BY name COLLATE NOCASE ASC")
+    fun observeAll(): Flow<List<ProductEntity>>
+
     @Upsert
     suspend fun upsert(product: ProductEntity): Long
 }

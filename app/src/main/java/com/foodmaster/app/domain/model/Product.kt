@@ -35,6 +35,35 @@ data class Macros(
     /** True when none of the core macros are known. */
     val isEmpty: Boolean
         get() = kcal == null && protein == null && carbs == null && fat == null
+
+    /** Scale every known field by [factor]; unknown fields stay unknown. */
+    operator fun times(factor: Double) = Macros(
+        kcal = kcal?.times(factor),
+        protein = protein?.times(factor),
+        carbs = carbs?.times(factor),
+        fat = fat?.times(factor),
+        fiber = fiber?.times(factor),
+        sugar = sugar?.times(factor),
+        salt = salt?.times(factor),
+    )
+
+    /** Field-by-field sum. A field is null only when it is unknown on both sides. */
+    operator fun plus(other: Macros) = Macros(
+        kcal = add(kcal, other.kcal),
+        protein = add(protein, other.protein),
+        carbs = add(carbs, other.carbs),
+        fat = add(fat, other.fat),
+        fiber = add(fiber, other.fiber),
+        sugar = add(sugar, other.sugar),
+        salt = add(salt, other.salt),
+    )
+
+    companion object {
+        val ZERO = Macros(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+        private fun add(a: Double?, b: Double?): Double? =
+            if (a == null && b == null) null else (a ?: 0.0) + (b ?: 0.0)
+    }
 }
 
 enum class DataSource { OPEN_FOOD_FACTS, MANUAL, RECEIPT }

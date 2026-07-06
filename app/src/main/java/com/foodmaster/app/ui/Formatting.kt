@@ -1,5 +1,6 @@
 package com.foodmaster.app.ui
 
+import com.foodmaster.app.domain.model.Macros
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.StorageLocation
 import java.time.LocalDate
@@ -21,4 +22,16 @@ fun StorageLocation.label(): String = when (this) {
     StorageLocation.NEVERA -> "Nevera"
     StorageLocation.CONGELADOR -> "Congelador"
     StorageLocation.DESPENSA -> "Despensa"
+}
+
+/** "—" when unknown, otherwise the rounded value plus [suffix]. */
+fun macroValue(value: Double?, suffix: String = ""): String =
+    if (value == null) "—" else "${formatNumber(value)}$suffix"
+
+/** Compact one-line summary: "540 kcal · P 30 · C 60 · G 18". */
+fun Macros.summaryLine(): String = buildString {
+    append(macroValue(kcal)).append(" kcal")
+    append(" · P ").append(macroValue(protein))
+    append(" · C ").append(macroValue(carbs))
+    append(" · G ").append(macroValue(fat))
 }

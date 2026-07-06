@@ -41,6 +41,13 @@ class ProductRepositoryImpl(
         }
     }
 
+    override suspend fun getById(id: Long): Product? = withContext(io) {
+        dao.findById(id)?.toDomain()
+    }
+
     override fun observe(id: Long): Flow<Product?> =
         dao.observeById(id).map { it?.toDomain() }
+
+    override fun observeCatalog(): Flow<List<Product>> =
+        dao.observeAll().map { list -> list.map { it.toDomain() } }
 }

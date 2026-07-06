@@ -73,6 +73,11 @@ class InventoryRepositoryImpl(
             )
         }
 
+    override suspend fun itemsExpiringWithin(days: Long): List<InventoryItem> = withContext(io) {
+        val max = LocalDate.now().plusDays(days).toEpochDay()
+        dao.expiringBy(max).map { it.toDomain() }
+    }
+
     override suspend fun delete(id: Long) = withContext(io) {
         dao.deleteById(id)
     }

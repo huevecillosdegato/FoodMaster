@@ -98,9 +98,28 @@ Escanear ──► Producto (OFF/caché) ──► Añadir al inventario
                          Comprado ─────► Inventario
 ```
 
+## Fase 2 — Nutrición y recetas
+
+Navegación ampliada a cinco pestañas: **Inventario · Escanear · Compra ·
+Recetas · Estadísticas**.
+
+- **Recetas**: crea recetas (nombre, raciones, ingredientes desde el catálogo de
+  productos escaneados, pasos). Muestra macros **por ración**.
+- **Preparar** una receta: calcula y guarda un `Meal` con sus macros
+  (snapshot del momento) y **consume cada ingrediente del inventario**, lo que a
+  su vez dispara la reposición automática de la compra. Cierra el bucle
+  inventario ↔ nutrición.
+- **Estadísticas**: resumen de macros de hoy y de los últimos 7 días a partir de
+  las comidas preparadas.
+- **Alertas de caducidad**: `WorkManager` diario que notifica los productos que
+  caducan en ≤ 3 días (permiso `POST_NOTIFICATIONS` en Android 13+).
+
+Cálculo de macros: `Σ (macros/100 × gramos-o-ml / 100)`. Los ingredientes por
+pieza se omiten hasta disponer de peso por unidad (mejora de Fase 3+).
+
 ## Siguientes pasos (según el diseño técnico)
 
-Fase 2: recetas, cálculo de macros por comida, alertas de caducidad
-(WorkManager). Fase 3: OCR de facturas, precios y coste por comida. Alta manual
-de productos no encontrados. Ver el documento de diseño para la hoja de ruta
-completa por fases.
+Fase 3: OCR de facturas (ML Kit Text Recognition), parsers por tienda, matching
+de productos, historial de precios y **coste por comida**. Pendientes menores:
+alta manual de productos no encontrados y peso por pieza para macros de
+ingredientes contados. Ver el documento de diseño para la hoja de ruta completa.

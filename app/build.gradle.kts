@@ -95,4 +95,7 @@ dependencies {
 
     // java.time on API < 26
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+
+    // Background work (expiry checks)
+    implementation(libs.androidx.work.runtime)
 }

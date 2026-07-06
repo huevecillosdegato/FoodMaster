@@ -18,6 +18,12 @@ interface ProductRepository {
      */
     suspend fun getByBarcode(barcode: String): Result<Product?>
 
+    /** Fetch a cached product by id. */
+    suspend fun getById(id: Long): Product?
+
     /** Observe a cached product by id. */
     fun observe(id: Long): Flow<Product?>
+
+    /** Observe the full local catalog (for recipe editing, manual pick, etc.). */
+    fun observeCatalog(): Flow<List<Product>>
 }
