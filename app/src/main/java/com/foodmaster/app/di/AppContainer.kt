@@ -44,7 +44,7 @@ class DefaultAppContainer(context: Context) : AppContainer {
         context.applicationContext,
         FoodMasterDatabase::class.java,
         "foodmaster.db",
-    ).build()
+    ).fallbackToDestructiveMigration(dropAllTables = true).build()
 
     private val json = Json {
         ignoreUnknownKeys = true
