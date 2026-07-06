@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      App-shell theme. Actual colors/typography are provided at runtime by the
+      Compose MaterialTheme (see ui/Theme.kt); this XML theme only needs to give
+      us a no-action-bar window. Using a platform theme keeps us free of the
+      Material Components (XML) dependency in a Compose-only app.
+    -->
+    <style name="Theme.FoodMaster" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
+</resources>
