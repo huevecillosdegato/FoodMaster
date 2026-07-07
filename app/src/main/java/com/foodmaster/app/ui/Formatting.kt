@@ -34,6 +34,10 @@ fun StorageLocation.label(): String = when (this) {
 fun macroValue(value: Double?, suffix: String = ""): String =
     if (value == null) "—" else "${formatNumber(value)}$suffix"
 
+/** Money with two decimals, e.g. "1,50 €". Shows "—" when unknown. */
+fun formatPrice(value: Double?): String =
+    if (value == null) "—" else String.format(java.util.Locale.getDefault(), "%.2f €", value)
+
 /** Compact one-line summary: "540 kcal · P 30 · C 60 · G 18". */
 fun Macros.summaryLine(): String = buildString {
     append(macroValue(kcal)).append(" kcal")

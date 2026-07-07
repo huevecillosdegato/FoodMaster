@@ -32,6 +32,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.foodmaster.app.consume.ConsumeDialog
 import com.foodmaster.app.domain.model.InventoryItem
+import com.foodmaster.app.domain.model.MeasureUnit
+import com.foodmaster.app.domain.model.Quantity
+import com.foodmaster.app.ui.ProductDetailSheet
+import com.foodmaster.app.ui.QuantityField
 import com.foodmaster.app.ui.display
 import com.foodmaster.app.ui.label
 
@@ -43,6 +47,7 @@ fun InventoryScreen(
 ) {
     val items by viewModel.items.collectAsStateWithLifecycle()
     var consuming by remember { mutableStateOf<InventoryItem?>(null) }
+    var detail by remember { mutableStateOf<InventoryItem?>(null) }
 
     if (items.isEmpty()) {
         Box(
@@ -63,6 +68,7 @@ fun InventoryScreen(
             items(items, key = { it.id }) { item ->
                 InventoryRow(
                     item = item,
+                    onClick = { detail = item },
                     onConsume = { consuming = item },
                     onDelete = { viewModel.delete(item) },
                     modifier = Modifier.padding(horizontal = 12.dp),
@@ -82,16 +88,33 @@ fun InventoryScreen(
             onDismiss = { consuming = null },
         )
     }
+
+    detail?.let { item ->
+        ProductDetailSheet(
+            product = item.product,
+            onDismiss = { detail = null },
+            extra = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("En casa: ${item.quantity.display()}", style = MaterialTheme.typography.bodyMedium)
+                    Text("Ubicación: ${item.location.label()}", style = MaterialTheme.typography.bodyMedium)
+                    item.expirationDate?.let {
+                        Text("Caduca: ${it.display()}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            },
+        )
+    }
 }
 
 @Composable
 private fun InventoryRow(
     item: InventoryItem,
+    onClick: () -> Unit,
     onConsume: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
