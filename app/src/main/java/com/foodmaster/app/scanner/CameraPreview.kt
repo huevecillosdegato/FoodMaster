@@ -14,6 +14,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Full-screen CameraX preview that continuously runs [BarcodeAnalyzer].
@@ -32,6 +33,8 @@ fun CameraPreview(
 
     // Single-threaded executor dedicated to image analysis.
     val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
+    // Held so we can release the camera when this composable leaves the screen.
+    val cameraProviderRef = remember { AtomicReference<ProcessCameraProvider?>() }
 
     AndroidView(
         modifier = modifier,
@@ -44,6 +47,7 @@ fun CameraPreview(
             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
+                cameraProviderRef.set(cameraProvider)
 
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
@@ -72,7 +76,11 @@ fun CameraPreview(
             previewView
         },
         onRelease = {
-            // Release the analysis executor when the composable leaves composition.
+            // Unbind the camera and release the analysis executor when the composable
+            // leaves composition; otherwise the camera stays bound to the Activity
+            // lifecycle and keeps running (green "camera in use" indicator) after you
+            // leave the scanner.
+            cameraProviderRef.getAndSet(null)?.unbindAll()
             analysisExecutor.shutdown()
         },
     )

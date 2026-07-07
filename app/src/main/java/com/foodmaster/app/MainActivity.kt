@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.foodmaster.app.inventory.InventoryScreen
+import com.foodmaster.app.meallog.MealLogScreen
 import com.foodmaster.app.recipes.RecipesScreen
 import com.foodmaster.app.scanner.ScannerScreen
 import com.foodmaster.app.shopping.ShoppingScreen
@@ -42,6 +44,7 @@ private enum class Tab(val titleRes: Int, val tabRes: Int, val icon: ImageVector
     Inventory(R.string.title_inventory, R.string.tab_inventory, Icons.Filled.Inventory2),
     Scan(R.string.app_name, R.string.tab_scan, Icons.Filled.QrCodeScanner),
     Shopping(R.string.title_shopping, R.string.tab_shopping, Icons.Filled.ShoppingCart),
+    Meals(R.string.title_meallog, R.string.tab_meallog, Icons.Filled.Restaurant),
     Recipes(R.string.title_recipes, R.string.tab_recipes, Icons.Filled.MenuBook),
     Stats(R.string.title_stats, R.string.tab_stats, Icons.Filled.BarChart),
 }
@@ -100,6 +103,7 @@ private fun FoodMasterApp() {
                 modifier = Modifier.padding(innerPadding),
             )
             Tab.Shopping -> ShoppingScreen(contentPadding = innerPadding)
+            Tab.Meals -> MealLogScreen(contentPadding = innerPadding)
             Tab.Recipes -> RecipesScreen(contentPadding = innerPadding)
             Tab.Stats -> StatsScreen(contentPadding = innerPadding)
         }
