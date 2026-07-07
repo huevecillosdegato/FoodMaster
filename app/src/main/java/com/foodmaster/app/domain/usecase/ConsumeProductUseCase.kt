@@ -3,6 +3,7 @@ package com.foodmaster.app.domain.usecase
 import com.foodmaster.app.domain.model.InventoryItem
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.baseQuantity
+import com.foodmaster.app.domain.model.resolveToStock
 import com.foodmaster.app.domain.repository.InventoryRepository
 import com.foodmaster.app.domain.repository.ShoppingListRepository
 
@@ -18,12 +19,15 @@ class ConsumeProductUseCase(
     suspend operator fun invoke(productId: Long, consumed: Quantity, mealId: Long? = null) {
         val item = inventoryRepository.findByProduct(productId) ?: return
 
+        // Resolve pieces → grams/ml so stock and consumption share a dimension.
+        val resolved = item.product.resolveToStock(consumed)
+
         // 1. Subtract in the base unit; never go below zero.
-        val remainingBase = (item.quantity.toBase() - consumed.toBase()).coerceAtLeast(0.0)
+        val remainingBase = (item.quantity.toBase() - resolved.toBase()).coerceAtLeast(0.0)
         val remaining = baseQuantity(remainingBase, item.quantity.unit.base)
 
         // 2. Record the consumption and the new stock.
-        inventoryRepository.logConsumption(productId, consumed, mealId)
+        inventoryRepository.logConsumption(productId, resolved, mealId)
         inventoryRepository.updateQuantity(item.id, remaining)
 
         // 3. Replenishment rule.

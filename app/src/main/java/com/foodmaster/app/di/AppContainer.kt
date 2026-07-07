@@ -6,11 +6,13 @@ import com.foodmaster.app.data.local.FoodMasterDatabase
 import com.foodmaster.app.data.remote.OpenFoodFactsApi
 import com.foodmaster.app.data.repository.InventoryRepositoryImpl
 import com.foodmaster.app.data.repository.MealLogRepositoryImpl
+import com.foodmaster.app.data.repository.PriceRepositoryImpl
 import com.foodmaster.app.data.repository.ProductRepositoryImpl
 import com.foodmaster.app.data.repository.RecipeRepositoryImpl
 import com.foodmaster.app.data.repository.ShoppingListRepositoryImpl
 import com.foodmaster.app.domain.repository.InventoryRepository
 import com.foodmaster.app.domain.repository.MealLogRepository
+import com.foodmaster.app.domain.repository.PriceRepository
 import com.foodmaster.app.domain.repository.ProductRepository
 import com.foodmaster.app.domain.repository.RecipeRepository
 import com.foodmaster.app.domain.repository.ShoppingListRepository
@@ -36,6 +38,7 @@ interface AppContainer {
     val shoppingListRepository: ShoppingListRepository
     val recipeRepository: RecipeRepository
     val mealLogRepository: MealLogRepository
+    val priceRepository: PriceRepository
     val addToInventoryUseCase: AddToInventoryUseCase
     val consumeProductUseCase: ConsumeProductUseCase
     val prepareRecipeUseCase: PrepareRecipeUseCase
@@ -49,6 +52,10 @@ class DefaultAppContainer(context: Context) : AppContainer {
         "foodmaster.db",
     )
         .addMigrations(FoodMasterDatabase.MIGRATION_1_2)
+        // Real migrations preserve data on known version jumps; destructive
+        // fallback stays as a safety net for any unforeseen schema change.
+        .addMigrations(*com.foodmaster.app.data.local.ALL_MIGRATIONS)
+        .fallbackToDestructiveMigration(dropAllTables = true)
         .build()
 
     private val json = Json {
@@ -112,6 +119,8 @@ class DefaultAppContainer(context: Context) : AppContainer {
 
     override val mealLogRepository: MealLogRepository by lazy {
         MealLogRepositoryImpl(database = database, io = Dispatchers.IO)
+    override val priceRepository: PriceRepository by lazy {
+        PriceRepositoryImpl(dao = database.priceDao(), io = Dispatchers.IO)
     }
 
     override val prepareRecipeUseCase: PrepareRecipeUseCase by lazy {

@@ -2,7 +2,9 @@ package com.foodmaster.app.domain.repository
 
 import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.Macros
+import com.foodmaster.app.domain.model.Portion
 import com.foodmaster.app.domain.model.Product
+import com.foodmaster.app.domain.model.Quantity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -31,6 +33,9 @@ interface ProductRepository {
         servingUnit: BaseUnit,
         macros: Macros,
     ): Product
+
+    /** Persist the net content and portion the user set for a product. */
+    suspend fun updatePackaging(productId: Long, netContent: Quantity?, portion: Portion?)
 
     /** Observe a cached product by id. */
     fun observe(id: Long): Flow<Product?>

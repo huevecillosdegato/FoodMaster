@@ -4,9 +4,13 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.material3.FilterChip
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.foodmaster.app.consume.ConsumeDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -48,7 +52,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.foodmaster.app.R
 import com.foodmaster.app.domain.model.BaseUnit
+import com.foodmaster.app.domain.model.Money
 import com.foodmaster.app.domain.model.Product
+import com.foodmaster.app.domain.model.Quantity
+import com.foodmaster.app.ui.display
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -58,6 +65,8 @@ import com.google.accompanist.permissions.rememberPermissionState
  * detects barcodes automatically, looks the product up in Open Food Facts /
  * cache, and shows a product card (or a not-found / error message).
  */
+private enum class ScanMode { INGRESO, CONSUMO }
+
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ScannerScreen(
@@ -86,14 +95,41 @@ private fun ScannerContent(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var mode by rememberSaveable { mutableStateOf(ScanMode.INGRESO) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showManualDialog by remember { mutableStateOf(false) }
+
+    // One-shot messages (added / consumed / no stock) → Toast.
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         CameraPreview(
             onBarcode = { value, _ -> viewModel.onBarcode(value) },
             modifier = Modifier.fillMaxSize(),
         )
+
+        // Mode switch: add stock (Ingreso) vs register consumption (Consumo).
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(
+                selected = mode == ScanMode.INGRESO,
+                onClick = { mode = ScanMode.INGRESO },
+                label = { Text("Ingreso") },
+            )
+            FilterChip(
+                selected = mode == ScanMode.CONSUMO,
+                onClick = { mode = ScanMode.CONSUMO },
+                label = { Text("Consumo") },
+            )
+        }
 
         // Framing guide + hint (only while actively scanning).
         if (state.phase == ScanPhase.Scanning) {
@@ -141,12 +177,23 @@ private fun ScannerContent(
             ScanPhase.Loading -> LoadingOverlay(code = state.scannedCode)
 
             ScanPhase.ProductFound -> state.product?.let { product ->
-                ProductCard(
-                    product = product,
-                    onScanAgain = viewModel::scanAgain,
-                    onAddToInventory = { showAddDialog = true },
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
+                if (mode == ScanMode.CONSUMO) {
+                    ConsumeDialog(
+                        product = product,
+                        stock = state.stock,
+                        onConfirm = { viewModel.consumeScanned(it) },
+                        onDismiss = viewModel::scanAgain,
+                    )
+                } else {
+                    ProductCard(
+                        product = product,
+                        stock = state.stock,
+                        price = state.price,
+                        onScanAgain = viewModel::scanAgain,
+                        onAddToInventory = { showAddDialog = true },
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
             }
 
             ScanPhase.NotFound -> AlertDialog(
@@ -193,13 +240,11 @@ private fun ScannerContent(
                             location = entry.location,
                             expirationDate = entry.expirationDate,
                             lowStockThreshold = entry.lowStockThreshold,
+                            netContent = entry.netContent,
+                            portion = entry.portion,
+                            unitPrice = entry.unitPrice,
                         )
                         showAddDialog = false
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.added_to_inventory, product.name),
-                            Toast.LENGTH_SHORT,
-                        ).show()
                     },
                     onDismiss = { showAddDialog = false },
                 )
@@ -243,6 +288,8 @@ private fun LoadingOverlay(code: String?) {
 @Composable
 private fun ProductCard(
     product: Product,
+    stock: Quantity?,
+    price: Money?,
     onScanAgain: () -> Unit,
     onAddToInventory: () -> Unit,
     modifier: Modifier = Modifier,
@@ -304,6 +351,21 @@ private fun ProductCard(
                 MacroCell(stringResource(R.string.macro_protein), product.macrosPer100.protein, "g")
                 MacroCell(stringResource(R.string.macro_carbs), product.macrosPer100.carbs, "g")
                 MacroCell(stringResource(R.string.macro_fat), product.macrosPer100.fat, "g")
+            }
+
+            val details = buildList {
+                stock?.let { add("En stock: ${it.display()}") }
+                price?.let { add("Último precio: ${it.display()}") }
+                product.netContent?.let { add("Paquete: ${it.display()}") }
+                product.portion?.let { add("Porción: ${it.label} (${it.quantity.display()})") }
+            }
+            if (details.isNotEmpty()) {
+                Text(
+                    text = details.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
 
             if (product.incomplete) {

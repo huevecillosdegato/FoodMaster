@@ -6,7 +6,10 @@ import com.foodmaster.app.data.remote.OffProductDto
 import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.DataSource
 import com.foodmaster.app.domain.model.Macros
+import com.foodmaster.app.domain.model.MeasureUnit
+import com.foodmaster.app.domain.model.Portion
 import com.foodmaster.app.domain.model.Product
+import com.foodmaster.app.domain.model.Quantity
 
 /** Map an Open Food Facts product to a cache entity for the given [barcode]. */
 fun OffProductDto.toEntity(barcode: String): ProductEntity {
@@ -33,6 +36,9 @@ fun OffProductDto.toEntity(barcode: String): ProductEntity {
         source = DataSource.OPEN_FOOD_FACTS.name,
         incomplete = incomplete,
         updatedAt = System.currentTimeMillis(),
+        // Best-effort net content from OFF's free-text "quantity" (e.g. "500 g").
+        netContentAmount = parseNetContent(quantity)?.amount,
+        netContentUnit = parseNetContent(quantity)?.unit?.name,
     )
 }
 
@@ -85,6 +91,16 @@ fun ProductEntity.toDomain(): Product = Product(
     servingUnit = runCatching { BaseUnit.valueOf(servingUnit) }.getOrDefault(BaseUnit.MASS),
     source = runCatching { DataSource.valueOf(source) }.getOrDefault(DataSource.OPEN_FOOD_FACTS),
     incomplete = incomplete,
+    netContent = if (netContentAmount != null && netContentUnit != null) {
+        Quantity(netContentAmount, unitOf(netContentUnit))
+    } else {
+        null
+    },
+    portion = if (portionLabel != null && portionAmount != null && portionUnit != null) {
+        Portion(portionLabel, Quantity(portionAmount, unitOf(portionUnit)))
+    } else {
+        null
+    },
 )
 
 /** Liquids are measured per 100 ml, everything else per 100 g. */
@@ -92,4 +108,22 @@ private fun guessServingUnit(quantity: String?): BaseUnit {
     val q = quantity?.lowercase().orEmpty()
     val looksLiquid = Regex("""\b\d+([.,]\d+)?\s*(ml|cl|l)\b""").containsMatchIn(q)
     return if (looksLiquid) BaseUnit.VOLUME else BaseUnit.MASS
+}
+
+/**
+ * Parse a free-text net-content string like "500 g", "1,5 L", "330ml" into a
+ * [Quantity]. Returns null when nothing recognizable is found.
+ */
+fun parseNetContent(quantity: String?): Quantity? {
+    val q = quantity?.lowercase()?.trim() ?: return null
+    val match = Regex("""(\d+(?:[.,]\d+)?)\s*(kg|g|cl|ml|l)\b""").find(q) ?: return null
+    val amount = match.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
+    return when (match.groupValues[2]) {
+        "kg" -> Quantity(amount, MeasureUnit.KILOGRAM)
+        "g" -> Quantity(amount, MeasureUnit.GRAM)
+        "l" -> Quantity(amount, MeasureUnit.LITER)
+        "cl" -> Quantity(amount * 10.0, MeasureUnit.MILLILITER)
+        "ml" -> Quantity(amount, MeasureUnit.MILLILITER)
+        else -> null
+    }
 }

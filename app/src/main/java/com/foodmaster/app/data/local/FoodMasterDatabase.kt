@@ -18,6 +18,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         MealLogItemEntity::class,
     ],
     version = 2,
+        PricePointEntity::class,
+    ],
+    version = 4,
     exportSchema = true,
 )
 abstract class FoodMasterDatabase : RoomDatabase() {
@@ -68,4 +71,5 @@ abstract class FoodMasterDatabase : RoomDatabase() {
             }
         }
     }
+    abstract fun priceDao(): PriceDao
 }

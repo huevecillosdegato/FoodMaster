@@ -1,34 +1,25 @@
 package com.foodmaster.app.domain.usecase
 
-import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.Macros
-import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.Recipe
+import com.foodmaster.app.domain.model.gramsOf
 
 /**
  * Total macros of a recipe = Σ (product macros/100 × grams-or-ml / 100).
  *
- * When an ingredient is measured in pieces (COUNT) — or its dimension doesn't
- * match the product's per-100 basis — its contribution is skipped, since we have
- * no weight-per-piece to convert it (a Phase 3+ enhancement).
+ * Pieces are resolved to grams via the product's net content; ingredients that
+ * still can't be resolved (pieces with no net content) are skipped.
  */
 class ComputeMealMacrosUseCase {
 
     operator fun invoke(recipe: Recipe): Macros {
         var total = Macros.ZERO
         recipe.ingredients.forEach { ingredient ->
-            val factor = macroFactor(ingredient.quantity, ingredient.product.servingUnit)
-            if (factor != null) {
-                total += ingredient.product.macrosPer100 * factor
+            val grams = ingredient.product.gramsOf(ingredient.quantity)
+            if (grams != null) {
+                total += ingredient.product.macrosPer100 * (grams / 100.0)
             }
         }
         return total
-    }
-
-    /** Factor = base amount / 100, only when the quantity dimension matches the basis. */
-    private fun macroFactor(quantity: Quantity, servingBasis: BaseUnit): Double? {
-        val matches = quantity.unit.base == servingBasis &&
-            (servingBasis == BaseUnit.MASS || servingBasis == BaseUnit.VOLUME)
-        return if (matches) quantity.toBase() / 100.0 else null
     }
 }

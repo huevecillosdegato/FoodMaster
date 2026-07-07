@@ -13,14 +13,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.RemoveCircleOutline
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,15 +30,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.foodmaster.app.consume.ConsumeDialog
 import com.foodmaster.app.domain.model.InventoryItem
 import com.foodmaster.app.domain.model.MeasureUnit
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.ui.ProductDetailSheet
 import com.foodmaster.app.ui.QuantityField
 import com.foodmaster.app.ui.display
-import com.foodmaster.app.ui.formatNumber
 import com.foodmaster.app.ui.label
-import com.foodmaster.app.ui.parseAmount
 
 @Composable
 fun InventoryScreen(
@@ -82,7 +79,8 @@ fun InventoryScreen(
 
     consuming?.let { item ->
         ConsumeDialog(
-            item = item,
+            product = item.product,
+            stock = item.quantity,
             onConfirm = { amount ->
                 viewModel.consume(item, amount)
                 consuming = null
@@ -150,40 +148,4 @@ private fun InventoryRow(
             }
         }
     }
-}
-
-@Composable
-private fun ConsumeDialog(
-    item: InventoryItem,
-    onConfirm: (Quantity) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var amountText by remember { mutableStateOf(formatNumber(item.quantity.amount)) }
-    var unit by remember { mutableStateOf(item.quantity.unit) }
-    val allowed = MeasureUnit.forDimension(item.quantity.unit.base)
-    val parsed = parseAmount(amountText)
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Consumir ${item.product.name}") },
-        text = {
-            QuantityField(
-                amountText = amountText,
-                onAmountChange = { amountText = it },
-                unit = unit,
-                onUnitChange = { unit = it },
-                allowedUnits = allowed,
-                label = "Cantidad consumida",
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { parsed?.let { onConfirm(Quantity(it, unit)) } },
-                enabled = parsed != null && parsed > 0.0,
-            ) { Text("Consumir") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
-        },
-    )
 }

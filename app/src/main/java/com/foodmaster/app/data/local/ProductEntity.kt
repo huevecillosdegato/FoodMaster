@@ -21,6 +21,12 @@ data class ProductEntity(
     val source: String,        // DataSource name
     val incomplete: Boolean,
     val updatedAt: Long,
+    // Packaging (added in schema v2): net content + user-defined portion.
+    val netContentAmount: Double? = null,
+    val netContentUnit: String? = null,   // MeasureUnit name
+    val portionLabel: String? = null,
+    val portionAmount: Double? = null,
+    val portionUnit: String? = null,      // MeasureUnit name
 )
 
 /** Flattened nutrition columns (prefixed "macro_" in the products table). */

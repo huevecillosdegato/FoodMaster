@@ -7,7 +7,9 @@ import com.foodmaster.app.data.mapper.toEntity
 import com.foodmaster.app.data.remote.OpenFoodFactsApi
 import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.Macros
+import com.foodmaster.app.domain.model.Portion
 import com.foodmaster.app.domain.model.Product
+import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.repository.ProductRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -60,6 +62,21 @@ class ProductRepositoryImpl(
         val entity = manualProductEntity(barcode, name, brand, servingUnit, macros, id = existingId)
         val id = dao.upsert(entity)
         entity.copy(id = id).toDomain()
+    }
+
+    override suspend fun updatePackaging(
+        productId: Long,
+        netContent: Quantity?,
+        portion: Portion?,
+    ): Unit = withContext(io) {
+        dao.updatePackaging(
+            id = productId,
+            netAmount = netContent?.amount,
+            netUnit = netContent?.unit?.name,
+            portionLabel = portion?.label,
+            portionAmount = portion?.quantity?.amount,
+            portionUnit = portion?.quantity?.unit?.name,
+        )
     }
 
     override fun observe(id: Long): Flow<Product?> =
