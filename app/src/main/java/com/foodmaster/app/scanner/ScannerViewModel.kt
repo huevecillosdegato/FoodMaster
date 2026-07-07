@@ -12,11 +12,16 @@ import com.foodmaster.app.domain.model.Portion
 import com.foodmaster.app.domain.model.Product
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.StorageLocation
+import com.foodmaster.app.domain.repository.InventoryRepository
 import com.foodmaster.app.domain.repository.ProductRepository
 import com.foodmaster.app.domain.usecase.AddToInventoryUseCase
+import com.foodmaster.app.domain.usecase.ConsumeProductUseCase
 import java.time.LocalDate
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -27,16 +32,23 @@ data class ScannerUiState(
     val phase: ScanPhase = ScanPhase.Scanning,
     val scannedCode: String? = null,
     val product: Product? = null,
+    val stock: Quantity? = null,   // current inventory stock for the found product
     val error: String? = null,
 )
 
 class ScannerViewModel(
     private val productRepository: ProductRepository,
+    private val inventoryRepository: InventoryRepository,
     private val addToInventoryUseCase: AddToInventoryUseCase,
+    private val consumeProductUseCase: ConsumeProductUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ScannerUiState())
     val state: StateFlow<ScannerUiState> = _state.asStateFlow()
+
+    // One-shot user messages (toasts).
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val messages: SharedFlow<String> = _messages.asSharedFlow()
 
     /** Called by the camera analyzer for each fresh detection. */
     fun onBarcode(code: String) {
@@ -47,10 +59,13 @@ class ScannerViewModel(
         viewModelScope.launch {
             productRepository.getByBarcode(code)
                 .onSuccess { product ->
+                    // For a known product, also load its current stock (for Consumo).
+                    val stock = product?.let { inventoryRepository.findByProduct(it.id)?.quantity }
                     _state.update {
                         it.copy(
                             phase = if (product != null) ScanPhase.ProductFound else ScanPhase.NotFound,
                             product = product,
+                            stock = stock,
                         )
                     }
                 }
@@ -99,6 +114,22 @@ class ScannerViewModel(
                 expirationDate = expirationDate,
                 lowStockThreshold = lowStockThreshold,
             )
+            _messages.tryEmit("${product.name} añadido al inventario")
+            scanAgain()
+        }
+    }
+
+    /** Register consumption of the currently scanned product from stock. */
+    fun consumeScanned(quantity: Quantity) {
+        val product = _state.value.product ?: return
+        viewModelScope.launch {
+            val item = inventoryRepository.findByProduct(product.id)
+            if (item != null) {
+                consumeProductUseCase(product.id, quantity)
+                _messages.tryEmit("Consumido: ${product.name}")
+            } else {
+                _messages.tryEmit("No tienes stock de ${product.name}")
+            }
             scanAgain()
         }
     }
@@ -109,7 +140,9 @@ class ScannerViewModel(
                 val container = (this[APPLICATION_KEY] as FoodMasterApplication).container
                 ScannerViewModel(
                     productRepository = container.productRepository,
+                    inventoryRepository = container.inventoryRepository,
                     addToInventoryUseCase = container.addToInventoryUseCase,
+                    consumeProductUseCase = container.consumeProductUseCase,
                 )
             }
         }

@@ -4,9 +4,13 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.material3.FilterChip
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.foodmaster.app.consume.ConsumeDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +63,8 @@ import com.google.accompanist.permissions.rememberPermissionState
  * detects barcodes automatically, looks the product up in Open Food Facts /
  * cache, and shows a product card (or a not-found / error message).
  */
+private enum class ScanMode { INGRESO, CONSUMO }
+
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ScannerScreen(
@@ -87,14 +93,41 @@ private fun ScannerContent(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var mode by rememberSaveable { mutableStateOf(ScanMode.INGRESO) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showManualDialog by remember { mutableStateOf(false) }
+
+    // One-shot messages (added / consumed / no stock) → Toast.
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         CameraPreview(
             onBarcode = { value, _ -> viewModel.onBarcode(value) },
             modifier = Modifier.fillMaxSize(),
         )
+
+        // Mode switch: add stock (Ingreso) vs register consumption (Consumo).
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(
+                selected = mode == ScanMode.INGRESO,
+                onClick = { mode = ScanMode.INGRESO },
+                label = { Text("Ingreso") },
+            )
+            FilterChip(
+                selected = mode == ScanMode.CONSUMO,
+                onClick = { mode = ScanMode.CONSUMO },
+                label = { Text("Consumo") },
+            )
+        }
 
         // Framing guide + hint (only while actively scanning).
         if (state.phase == ScanPhase.Scanning) {
@@ -142,12 +175,21 @@ private fun ScannerContent(
             ScanPhase.Loading -> LoadingOverlay(code = state.scannedCode)
 
             ScanPhase.ProductFound -> state.product?.let { product ->
-                ProductCard(
-                    product = product,
-                    onScanAgain = viewModel::scanAgain,
-                    onAddToInventory = { showAddDialog = true },
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
+                if (mode == ScanMode.CONSUMO) {
+                    ConsumeDialog(
+                        product = product,
+                        stock = state.stock,
+                        onConfirm = { viewModel.consumeScanned(it) },
+                        onDismiss = viewModel::scanAgain,
+                    )
+                } else {
+                    ProductCard(
+                        product = product,
+                        onScanAgain = viewModel::scanAgain,
+                        onAddToInventory = { showAddDialog = true },
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
             }
 
             ScanPhase.NotFound -> AlertDialog(
@@ -198,11 +240,6 @@ private fun ScannerContent(
                             portion = entry.portion,
                         )
                         showAddDialog = false
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.added_to_inventory, product.name),
-                            Toast.LENGTH_SHORT,
-                        ).show()
                     },
                     onDismiss = { showAddDialog = false },
                 )

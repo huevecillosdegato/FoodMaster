@@ -3,6 +3,7 @@ package com.foodmaster.app.domain.usecase
 import com.foodmaster.app.domain.model.Product
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.StorageLocation
+import com.foodmaster.app.domain.model.resolveToStock
 import com.foodmaster.app.domain.repository.InventoryRepository
 import java.time.LocalDate
 
@@ -20,7 +21,8 @@ class AddToInventoryUseCase(
     ) {
         inventoryRepository.addOrIncrement(
             product = product,
-            quantity = quantity,
+            // Pieces become grams/ml when the package weight is known.
+            quantity = product.resolveToStock(quantity),
             location = location,
             purchaseDate = purchaseDate,
             expirationDate = expirationDate,
