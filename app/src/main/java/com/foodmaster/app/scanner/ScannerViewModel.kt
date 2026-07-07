@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.foodmaster.app.FoodMasterApplication
 import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.Macros
+import com.foodmaster.app.domain.model.Portion
 import com.foodmaster.app.domain.model.Product
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.StorageLocation
@@ -82,9 +83,15 @@ class ScannerViewModel(
         location: StorageLocation,
         expirationDate: LocalDate?,
         lowStockThreshold: Quantity?,
+        netContent: Quantity?,
+        portion: Portion?,
     ) {
         val product = _state.value.product ?: return
         viewModelScope.launch {
+            // Remember packaging on the product so the next scan pre-fills it.
+            if (netContent != null || portion != null) {
+                productRepository.updatePackaging(product.id, netContent, portion)
+            }
             addToInventoryUseCase(
                 product = product,
                 quantity = quantity,

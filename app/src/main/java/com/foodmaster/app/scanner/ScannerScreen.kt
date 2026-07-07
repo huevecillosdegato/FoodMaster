@@ -49,6 +49,7 @@ import coil.compose.AsyncImage
 import com.foodmaster.app.R
 import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.Product
+import com.foodmaster.app.ui.display
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -193,6 +194,8 @@ private fun ScannerContent(
                             location = entry.location,
                             expirationDate = entry.expirationDate,
                             lowStockThreshold = entry.lowStockThreshold,
+                            netContent = entry.netContent,
+                            portion = entry.portion,
                         )
                         showAddDialog = false
                         Toast.makeText(
@@ -304,6 +307,19 @@ private fun ProductCard(
                 MacroCell(stringResource(R.string.macro_protein), product.macrosPer100.protein, "g")
                 MacroCell(stringResource(R.string.macro_carbs), product.macrosPer100.carbs, "g")
                 MacroCell(stringResource(R.string.macro_fat), product.macrosPer100.fat, "g")
+            }
+
+            val packaging = buildList {
+                product.netContent?.let { add("Paquete: ${it.display()}") }
+                product.portion?.let { add("Porción: ${it.label} (${it.quantity.display()})") }
+            }
+            if (packaging.isNotEmpty()) {
+                Text(
+                    text = packaging.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
 
             if (product.incomplete) {

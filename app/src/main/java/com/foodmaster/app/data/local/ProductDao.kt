@@ -20,6 +20,21 @@ interface ProductDao {
     @Query("SELECT * FROM products ORDER BY name COLLATE NOCASE ASC")
     fun observeAll(): Flow<List<ProductEntity>>
 
+    @Query(
+        "UPDATE products SET " +
+            "netContentAmount = :netAmount, netContentUnit = :netUnit, " +
+            "portionLabel = :portionLabel, portionAmount = :portionAmount, portionUnit = :portionUnit " +
+            "WHERE id = :id",
+    )
+    suspend fun updatePackaging(
+        id: Long,
+        netAmount: Double?,
+        netUnit: String?,
+        portionLabel: String?,
+        portionAmount: Double?,
+        portionUnit: String?,
+    )
+
     @Upsert
     suspend fun upsert(product: ProductEntity): Long
 }

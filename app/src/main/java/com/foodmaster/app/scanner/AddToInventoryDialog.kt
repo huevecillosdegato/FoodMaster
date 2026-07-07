@@ -2,11 +2,10 @@ package com.foodmaster.app.scanner
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -15,6 +14,8 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,15 +23,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.MeasureUnit
+import com.foodmaster.app.domain.model.Portion
 import com.foodmaster.app.domain.model.Product
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.StorageLocation
 import com.foodmaster.app.ui.QuantityField
 import com.foodmaster.app.ui.display
+import com.foodmaster.app.ui.formatNumber
 import com.foodmaster.app.ui.label
 import com.foodmaster.app.ui.parseAmount
 import java.time.Instant
@@ -42,7 +46,11 @@ data class InventoryEntry(
     val location: StorageLocation,
     val expirationDate: LocalDate?,
     val lowStockThreshold: Quantity?,
+    val netContent: Quantity?,
+    val portion: Portion?,
 )
+
+private enum class PortionMode { GRAMS, PER_PACK }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -51,10 +59,11 @@ fun AddToInventoryDialog(
     onConfirm: (InventoryEntry) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val defaultUnit = if (product.servingUnit == BaseUnit.VOLUME) MeasureUnit.MILLILITER else MeasureUnit.GRAM
+    val dimensionUnits = MeasureUnit.forDimension(product.servingUnit)
+    val baseDefault = if (product.servingUnit == BaseUnit.VOLUME) MeasureUnit.MILLILITER else MeasureUnit.GRAM
 
     var amountText by remember { mutableStateOf("1") }
-    var unit by remember { mutableStateOf(defaultUnit) }
+    var unit by remember { mutableStateOf(MeasureUnit.PIECE) }
     var location by remember { mutableStateOf(StorageLocation.DESPENSA) }
 
     var lowStockEnabled by remember { mutableStateOf(false) }
@@ -63,8 +72,28 @@ fun AddToInventoryDialog(
     var expiration by remember { mutableStateOf<LocalDate?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
 
+    // Packaging (remembered on the product).
+    var netContentText by remember { mutableStateOf(product.netContent?.let { formatNumber(it.amount) } ?: "") }
+    var netContentUnit by remember { mutableStateOf(product.netContent?.unit ?: baseDefault) }
+    var portionLabel by remember { mutableStateOf(product.portion?.label ?: "") }
+    var portionMode by remember { mutableStateOf(PortionMode.GRAMS) }
+    var portionGramsText by remember { mutableStateOf(product.portion?.let { formatNumber(it.quantity.amount) } ?: "") }
+    var portionUnit by remember { mutableStateOf(product.portion?.quantity?.unit ?: baseDefault) }
+    var portionsPerPackText by remember { mutableStateOf("") }
+
     val amount = parseAmount(amountText)
     val lowStockAmount = parseAmount(lowStockText)
+    val netContent = parseAmount(netContentText)?.let { Quantity(it, netContentUnit) }
+
+    val portion = buildPortion(
+        mode = portionMode,
+        label = portionLabel,
+        gramsText = portionGramsText,
+        portionUnit = portionUnit,
+        perPackText = portionsPerPackText,
+        netContent = netContent,
+    )
+
     val valid = amount != null && amount > 0.0 &&
         (!lowStockEnabled || (lowStockAmount != null && lowStockAmount > 0.0))
 
@@ -107,7 +136,7 @@ fun AddToInventoryDialog(
                     }
                 }
 
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = lowStockEnabled, onCheckedChange = { lowStockEnabled = it })
                     Text("Avisar cuando baje de")
                 }
@@ -120,6 +149,60 @@ fun AddToInventoryDialog(
                         allowedUnits = MeasureUnit.forDimension(unit.base),
                         label = "Umbral",
                     )
+                }
+
+                HorizontalDivider()
+                Text("Datos del producto (se recuerdan)")
+
+                QuantityField(
+                    amountText = netContentText,
+                    onAmountChange = { netContentText = it },
+                    unit = netContentUnit,
+                    onUnitChange = { netContentUnit = it },
+                    allowedUnits = dimensionUnits,
+                    label = "Peso/contenido del paquete",
+                )
+
+                OutlinedTextField(
+                    value = portionLabel,
+                    onValueChange = { portionLabel = it },
+                    label = { Text("Nombre de la porción (p.ej. loncha)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text("Definir la porción por:")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = portionMode == PortionMode.GRAMS,
+                        onClick = { portionMode = PortionMode.GRAMS },
+                        label = { Text("Peso") },
+                    )
+                    FilterChip(
+                        selected = portionMode == PortionMode.PER_PACK,
+                        onClick = { portionMode = PortionMode.PER_PACK },
+                        label = { Text("Nº por paquete") },
+                    )
+                }
+                when (portionMode) {
+                    PortionMode.GRAMS -> QuantityField(
+                        amountText = portionGramsText,
+                        onAmountChange = { portionGramsText = it },
+                        unit = portionUnit,
+                        onUnitChange = { portionUnit = it },
+                        allowedUnits = dimensionUnits,
+                        label = "Tamaño de la porción",
+                    )
+
+                    PortionMode.PER_PACK -> {
+                        OutlinedTextField(
+                            value = portionsPerPackText,
+                            onValueChange = { portionsPerPackText = it.filter(Char::isDigit) },
+                            label = { Text("Porciones por paquete") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        portion?.let { Text("→ 1 porción = ${it.quantity.display()}") }
+                    }
                 }
             }
         },
@@ -137,6 +220,8 @@ fun AddToInventoryDialog(
                             } else {
                                 null
                             },
+                            netContent = netContent,
+                            portion = portion,
                         ),
                     )
                 },
@@ -164,6 +249,33 @@ fun AddToInventoryDialog(
             },
         ) {
             DatePicker(state = state)
+        }
+    }
+}
+
+/** Resolve the portion from the chosen mode, or null when not defined. */
+private fun buildPortion(
+    mode: PortionMode,
+    label: String,
+    gramsText: String,
+    portionUnit: MeasureUnit,
+    perPackText: String,
+    netContent: Quantity?,
+): Portion? {
+    val name = label.trim().ifBlank { "porción" }
+    return when (mode) {
+        PortionMode.GRAMS -> parseAmount(gramsText)
+            ?.takeIf { it > 0.0 }
+            ?.let { Portion(name, Quantity(it, portionUnit)) }
+
+        PortionMode.PER_PACK -> {
+            val n = perPackText.toIntOrNull()
+            if (n != null && n > 0 && netContent != null) {
+                val perBase = netContent.toBase() / n
+                Portion(name, Quantity(perBase, netContent.unit.baseAsUnit()))
+            } else {
+                null
+            }
         }
     }
 }

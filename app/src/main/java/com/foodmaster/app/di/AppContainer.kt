@@ -44,7 +44,12 @@ class DefaultAppContainer(context: Context) : AppContainer {
         context.applicationContext,
         FoodMasterDatabase::class.java,
         "foodmaster.db",
-    ).fallbackToDestructiveMigration(dropAllTables = true).build()
+    )
+        // Real migrations preserve data on known version jumps; destructive
+        // fallback stays as a safety net for any unforeseen schema change.
+        .addMigrations(*com.foodmaster.app.data.local.ALL_MIGRATIONS)
+        .fallbackToDestructiveMigration(dropAllTables = true)
+        .build()
 
     private val json = Json {
         ignoreUnknownKeys = true

@@ -13,7 +13,7 @@ import androidx.room.RoomDatabase
         RecipeIngredientEntity::class,
         MealEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class FoodMasterDatabase : RoomDatabase() {

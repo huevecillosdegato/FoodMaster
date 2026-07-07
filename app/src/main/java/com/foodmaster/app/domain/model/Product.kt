@@ -20,6 +20,24 @@ data class Product(
      * can invite the user to complete them. Open Food Facts data is often partial.
      */
     val incomplete: Boolean,
+    /**
+     * Net content of one package/unit (e.g. 500 g per can). Not reliably present
+     * in Open Food Facts, so the user sets it once and it is remembered by barcode.
+     * Used to convert "1 unit" ↔ grams/ml.
+     */
+    val netContent: Quantity? = null,
+    /** User-defined consumption portion (e.g. "loncha" = 10 g), remembered per product. */
+    val portion: Portion? = null,
+)
+
+/**
+ * A consumption portion the user defines once per product. [quantity] is always a
+ * mass/volume amount (grams or ml), even when the user thinks of it as "1 slice":
+ * a 100 g pack of 10 slices → Portion("loncha", 10 g).
+ */
+data class Portion(
+    val label: String,
+    val quantity: Quantity,
 )
 
 /** Nutrition per 100 g / 100 ml. Nullable fields are "unknown", not zero. */
