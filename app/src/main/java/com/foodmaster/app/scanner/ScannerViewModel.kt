@@ -8,11 +8,13 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.foodmaster.app.FoodMasterApplication
 import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.Macros
+import com.foodmaster.app.domain.model.Money
 import com.foodmaster.app.domain.model.Portion
 import com.foodmaster.app.domain.model.Product
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.StorageLocation
 import com.foodmaster.app.domain.repository.InventoryRepository
+import com.foodmaster.app.domain.repository.PriceRepository
 import com.foodmaster.app.domain.repository.ProductRepository
 import com.foodmaster.app.domain.usecase.AddToInventoryUseCase
 import com.foodmaster.app.domain.usecase.ConsumeProductUseCase
@@ -33,12 +35,14 @@ data class ScannerUiState(
     val scannedCode: String? = null,
     val product: Product? = null,
     val stock: Quantity? = null,   // current inventory stock for the found product
+    val price: Money? = null,      // most recent recorded price for the product
     val error: String? = null,
 )
 
 class ScannerViewModel(
     private val productRepository: ProductRepository,
     private val inventoryRepository: InventoryRepository,
+    private val priceRepository: PriceRepository,
     private val addToInventoryUseCase: AddToInventoryUseCase,
     private val consumeProductUseCase: ConsumeProductUseCase,
 ) : ViewModel() {
@@ -59,13 +63,15 @@ class ScannerViewModel(
         viewModelScope.launch {
             productRepository.getByBarcode(code)
                 .onSuccess { product ->
-                    // For a known product, also load its current stock (for Consumo).
+                    // For a known product, also load its current stock and price.
                     val stock = product?.let { inventoryRepository.findByProduct(it.id)?.quantity }
+                    val price = product?.let { priceRepository.currentPrice(it.id) }
                     _state.update {
                         it.copy(
                             phase = if (product != null) ScanPhase.ProductFound else ScanPhase.NotFound,
                             product = product,
                             stock = stock,
+                            price = price,
                         )
                     }
                 }
@@ -100,12 +106,16 @@ class ScannerViewModel(
         lowStockThreshold: Quantity?,
         netContent: Quantity?,
         portion: Portion?,
+        unitPrice: Money?,
     ) {
         val product = _state.value.product ?: return
         viewModelScope.launch {
             // Remember packaging on the product so the next scan pre-fills it.
             if (netContent != null || portion != null) {
                 productRepository.updatePackaging(product.id, netContent, portion)
+            }
+            if (unitPrice != null) {
+                priceRepository.recordPrice(product.id, unitPrice)
             }
             addToInventoryUseCase(
                 product = product,
@@ -141,6 +151,7 @@ class ScannerViewModel(
                 ScannerViewModel(
                     productRepository = container.productRepository,
                     inventoryRepository = container.inventoryRepository,
+                    priceRepository = container.priceRepository,
                     addToInventoryUseCase = container.addToInventoryUseCase,
                     consumeProductUseCase = container.consumeProductUseCase,
                 )

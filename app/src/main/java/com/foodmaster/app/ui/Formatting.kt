@@ -1,6 +1,7 @@
 package com.foodmaster.app.ui
 
 import com.foodmaster.app.domain.model.Macros
+import com.foodmaster.app.domain.model.Money
 import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.domain.model.StorageLocation
 import java.time.LocalDate
@@ -15,6 +16,11 @@ fun formatNumber(value: Double): String {
 }
 
 fun Quantity.display(): String = "${formatNumber(amount)} ${unit.symbol}"
+
+fun Money.display(): String = "%.2f €".format(cents / 100.0).replace('.', ',')
+
+/** Parse a euros amount ("1,20" or "1.20") into [Money], or null. */
+fun parseMoney(text: String): Money? = parseAmount(text)?.let { Money.fromMajor(it) }
 
 fun LocalDate.display(): String = format(dateFormatter)
 

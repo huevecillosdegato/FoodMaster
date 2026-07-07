@@ -52,7 +52,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.foodmaster.app.R
 import com.foodmaster.app.domain.model.BaseUnit
+import com.foodmaster.app.domain.model.Money
 import com.foodmaster.app.domain.model.Product
+import com.foodmaster.app.domain.model.Quantity
 import com.foodmaster.app.ui.display
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -185,6 +187,8 @@ private fun ScannerContent(
                 } else {
                     ProductCard(
                         product = product,
+                        stock = state.stock,
+                        price = state.price,
                         onScanAgain = viewModel::scanAgain,
                         onAddToInventory = { showAddDialog = true },
                         modifier = Modifier.align(Alignment.BottomCenter),
@@ -238,6 +242,7 @@ private fun ScannerContent(
                             lowStockThreshold = entry.lowStockThreshold,
                             netContent = entry.netContent,
                             portion = entry.portion,
+                            unitPrice = entry.unitPrice,
                         )
                         showAddDialog = false
                     },
@@ -283,6 +288,8 @@ private fun LoadingOverlay(code: String?) {
 @Composable
 private fun ProductCard(
     product: Product,
+    stock: Quantity?,
+    price: Money?,
     onScanAgain: () -> Unit,
     onAddToInventory: () -> Unit,
     modifier: Modifier = Modifier,
@@ -346,13 +353,15 @@ private fun ProductCard(
                 MacroCell(stringResource(R.string.macro_fat), product.macrosPer100.fat, "g")
             }
 
-            val packaging = buildList {
+            val details = buildList {
+                stock?.let { add("En stock: ${it.display()}") }
+                price?.let { add("Último precio: ${it.display()}") }
                 product.netContent?.let { add("Paquete: ${it.display()}") }
                 product.portion?.let { add("Porción: ${it.label} (${it.quantity.display()})") }
             }
-            if (packaging.isNotEmpty()) {
+            if (details.isNotEmpty()) {
                 Text(
-                    text = packaging.joinToString(" · "),
+                    text = details.joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),

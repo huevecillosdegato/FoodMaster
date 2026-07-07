@@ -12,8 +12,9 @@ import androidx.room.RoomDatabase
         RecipeEntity::class,
         RecipeIngredientEntity::class,
         MealEntity::class,
+        PricePointEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class FoodMasterDatabase : RoomDatabase() {
@@ -22,4 +23,5 @@ abstract class FoodMasterDatabase : RoomDatabase() {
     abstract fun shoppingDao(): ShoppingDao
     abstract fun recipeDao(): RecipeDao
     abstract fun mealDao(): MealDao
+    abstract fun priceDao(): PriceDao
 }

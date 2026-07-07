@@ -18,5 +18,26 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+/**
+ * v3 → v4: add the `price_history` table. DDL matches Room's generated schema
+ * (column order, FK, index names) so the post-migration validation passes.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `price_history` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`productId` INTEGER NOT NULL, " +
+                "`unitPriceCents` INTEGER NOT NULL, " +
+                "`observedAt` INTEGER NOT NULL, " +
+                "`source` TEXT NOT NULL, " +
+                "FOREIGN KEY(`productId`) REFERENCES `products`(`id`) " +
+                "ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_price_history_productId` ON `price_history` (`productId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_price_history_observedAt` ON `price_history` (`observedAt`)")
+    }
+}
+
 /** All migrations, in order. */
-val ALL_MIGRATIONS = arrayOf(MIGRATION_2_3)
+val ALL_MIGRATIONS = arrayOf(MIGRATION_2_3, MIGRATION_3_4)

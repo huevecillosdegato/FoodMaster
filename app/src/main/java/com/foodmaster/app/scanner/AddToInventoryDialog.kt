@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -25,9 +26,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.foodmaster.app.domain.model.BaseUnit
 import com.foodmaster.app.domain.model.MeasureUnit
+import com.foodmaster.app.domain.model.Money
 import com.foodmaster.app.domain.model.Portion
 import com.foodmaster.app.domain.model.Product
 import com.foodmaster.app.domain.model.Quantity
@@ -37,6 +40,7 @@ import com.foodmaster.app.ui.display
 import com.foodmaster.app.ui.formatNumber
 import com.foodmaster.app.ui.label
 import com.foodmaster.app.ui.parseAmount
+import com.foodmaster.app.ui.parseMoney
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -48,6 +52,7 @@ data class InventoryEntry(
     val lowStockThreshold: Quantity?,
     val netContent: Quantity?,
     val portion: Portion?,
+    val unitPrice: Money?,
 )
 
 private enum class PortionMode { GRAMS, PER_PACK }
@@ -65,6 +70,8 @@ fun AddToInventoryDialog(
     var amountText by remember { mutableStateOf("1") }
     var unit by remember { mutableStateOf(MeasureUnit.PIECE) }
     var location by remember { mutableStateOf(StorageLocation.DESPENSA) }
+
+    var priceText by remember { mutableStateOf("") }
 
     var lowStockEnabled by remember { mutableStateOf(false) }
     var lowStockText by remember { mutableStateOf("") }
@@ -126,6 +133,15 @@ fun AddToInventoryDialog(
                         )
                     }
                 }
+
+                OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { priceText = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                    label = { Text("Precio pagado (€, opcional)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 Row(modifier = Modifier.fillMaxWidth()) {
                     TextButton(onClick = { showDatePicker = true }) {
@@ -222,6 +238,7 @@ fun AddToInventoryDialog(
                             },
                             netContent = netContent,
                             portion = portion,
+                            unitPrice = parseMoney(priceText),
                         ),
                     )
                 },
